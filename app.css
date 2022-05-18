@@ -179,6 +179,11 @@ h6 {
     top: 50%;
     left: 50%;
     display: none;
+    cursor: pointer;
+    background-color: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
 }
 
 .list-opiton-item {
@@ -187,6 +192,11 @@ h6 {
     justify-content: space-between;
     align-items: center;
     transition: all 0.28s ease-in-out;
+}
+
+.list-opiton-item + .list-opiton-item {
+    border: none;
+    border-top: 1px solid #eee;
 }
 
 .list-opiton-item img {

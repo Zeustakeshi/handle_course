@@ -37,7 +37,7 @@ class App extends Api {
         super();
         this.localData = [];
         this.root = document.querySelector('#root');
-        this.buttonAddCourse = this.createEelement(
+        this.buttonAddCourse = this.createElement(
             'button',
             '',
             'Add courses'
@@ -48,11 +48,17 @@ class App extends Api {
             'data-bs-target',
             '#addCoursesModal'
         );
-        this.cousresHtml = this.createEelement('div');
+        this.cousresHtml = this.createElement('div');
         this.cousresHtml.classList = 'list-cousres-container';
-        this.root.append(this.buttonAddCourse, this.cousresHtml);
+        this.listOptions = this.createElement('div');
+        this.listOptions.classList = 'list-group list-opiton';
+        this.root.append(
+            this.buttonAddCourse,
+            this.cousresHtml,
+            this.listOptions
+        );
     }
-    createEelement(tagName, className, textContent) {
+    createElement(tagName, className, textContent) {
         const ele = document.createElement(tagName);
         if (className) {
             ele.classList.add(className);
@@ -61,6 +67,34 @@ class App extends Api {
             ele.textContent = textContent;
         }
         return ele;
+    }
+    getDataFromModal(inputClassNames, isClear) {
+        let result = {};
+        for (let i in inputClassNames) {
+            const ele = document.querySelector(`.${inputClassNames[i]}`);
+            if (ele.type === 'text') {
+                result[i] = ele.value;
+                if (isClear) {
+                    ele.value = '';
+                }
+            } else {
+                result[i] = ele.checked;
+                if (isClear) {
+                    ele.checked = false;
+                }
+            }
+        }
+        return result;
+    }
+    setDataFromModal(inputClassNames, data) {
+        for (let i in inputClassNames) {
+            const ele = document.querySelector(`.${inputClassNames[i]}`);
+            if (ele.type === 'text') {
+                ele.value = data[i];
+            } else {
+                ele.checked = data[i];
+            }
+        }
     }
     rederModal(modalName, title, modalBody, options) {
         const html = `<div class="modal fade" id="${modalName}Modal" tabindex="-1" aria-labelledby="${modalName}Label" aria-hidden="true">
@@ -77,8 +111,8 @@ class App extends Api {
                         ${
                             options.close
                                 ? `<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    <button type="button" class="btn btn-primary btn-add">Add</button>`
-                                : '<button type="button" class="btn btn-primary " data-bs-dismiss="modal">ok</button>'
+                                    <button type="button" class="btn btn-primary btn-${options.method}">${options.method}</button>`
+                                : `<button type="button" class="btn btn-primary " data-bs-dismiss="modal">${options.method}</button>`
                         }
                         
                     </div>
@@ -119,29 +153,45 @@ class App extends Api {
             );
         }, '');
         this.cousresHtml.innerHTML = html;
-        // this.cousresHtml.insertAdjacentHTML('afterbegin', html);
-        this.btnBuyNow = document.querySelectorAll('.btn-buy-now');
+    }
+    addModal() {
+        this.handleRenderAddCourse();
+        this.handdleRenderBuySuccess();
+        this.handleRenderChangeCourse();
+        const htmlOptionsChange = `
+        <div class="list-opiton-change list-opiton-item" data-bs-target="#changeCoursesModal" data-bs-toggle="modal" >
+            <img src="./img/control-fix-setting_108715.svg" alt="" srcset="">
+            Change 
+        </div>`;
+        const htmlOptionsRemove = `
+        <div class="list-opiton-remove list-opiton-item" >
+            <img src="./img/trash_bin_icon-icons.com_67981.svg" alt="" srcset="">
+            Remove
+        </div>`;
+        this.listOptions.innerHTML = htmlOptionsChange + htmlOptionsRemove;
     }
     handleRightClick() {
-        const options = document.querySelector('.list-opiton');
+        this.options = document.querySelector('.list-opiton');
         window.addEventListener('contextmenu', (e) => {
             if (e.target.matches('.cousres-card')) {
-                options.style = `
+                this.options.style = `
                 display:block;
                 top: ${e.pageY}px;
                 left: ${e.pageX}px;`;
                 e.preventDefault();
-                // aa is current index  when right click course-card
-                const aa =
-                    [...e.target.parentNode.childNodes].indexOf(e.target) /
-                    2;
-                this.handleDeleteAndPathCourse(aa);
+                // aa is list course (return nodeList)
+                const aa = this.cousresHtml.childNodes;
+                // index is current course when right and open option
+                const currentCourse = [...aa].find((aa) => aa === e.target);
+                this.rightClickCurrenrCourse = currentCourse;
+                this.rightClickCurrentIndex =
+                    [...aa].indexOf(currentCourse) / 2;
                 return false;
             }
             return false;
         });
         document.addEventListener('click', (e) => {
-            options.style = `display:none`;
+            this.options.style = `display:none`;
             return false;
         });
         return false;
@@ -199,56 +249,153 @@ class App extends Api {
         }, '');
         this.rederModal('addCourses', 'Add Courses', modalBody, {
             close: true,
+            method: 'add',
         });
     }
-    handleRenderBuySucceed() {
+    handdleRenderBuySuccess() {
         const modalBody = `Thanh You !!!
-        <img src="./img/heart_love_smiley_icon_123396.svg"class="icon-happy">`;
+        <img src="./img/heart_love_smiley_icon_123396.svg" alt="" srcset="" class="icon-happy">`;
         this.rederModal('buy', 'Buy Successfully', modalBody, {
             close: false,
+            method: 'ok',
+        });
+    }
+    handleRenderChangeCourse() {
+        const flieds = [
+            {
+                filedName: 'ChangeName',
+                inputType: 'text',
+                placeholder: 'Enter New Name',
+                label: false,
+            },
+            {
+                filedName: 'ChangeAuthor',
+                inputType: 'text',
+                placeholder: 'Enter New Author Name',
+                label: false,
+            },
+            {
+                filedName: 'ChangePrice',
+                inputType: 'text',
+                placeholder: 'Enter New Price',
+                label: false,
+            },
+            {
+                filedName: 'ChangeBuyAmount',
+                inputType: 'text',
+                placeholder: 'Enter New Buy Amount',
+                label: false,
+            },
+            {
+                filedName: 'ChangeBestSeller',
+                inputType: 'checkBox',
+                placeholder: 'Enter New Buy Amount',
+                label: 'Best Seller',
+            },
+        ];
+        const modalBody = flieds.reduce((a, b) => {
+            if (!b.label) {
+                return (
+                    a +
+                    `<div class="input-group input-group-sm mb-3">
+                        <input type="${b.inputType}" class="form-control input${b.filedName}" placeholder="${b.placeholder}">
+                    </div>`
+                );
+            } else {
+                return (
+                    a +
+                    ` <div class="form-check form-switch input-group-sm mb-3 ">
+                        <input class="form-check-input input${b.filedName}" type="${b.inputType}" role="switch" id="input${b.filedName}">
+                        <label class="form-check-label" for="input${b.filedName}">${b.label}</label>
+                    </div>`
+                );
+            }
+        }, '');
+        this.rederModal('changeCourses', 'Change Courses', modalBody, {
+            close: true,
+            method: 'change',
         });
     }
     handleEvent() {
         this.handleRightClick();
-        this.buttonAddCourse.addEventListener(
-            'click',
-            this.handleRenderAddCourse()
-        );
         document.addEventListener('click', (e) => {
+            // click btn add from modal add course
             if (e.target.matches('.btn-add')) {
                 this.handleAddCourse();
+            }
+            // click option change course  from  list option
+            else if (e.target.matches('.list-opiton-change')) {
+                this.handleChangeCourse();
+            }
+            // click btn add from modal add course
+            else if (e.target.matches('.btn-change')) {
+                const index = this.rightClickCurrentIndex;
+                const data = this.getDataFromModal({
+                    name: 'inputChangeName',
+                    author: 'inputChangeAuthor',
+                    price: 'inputChangePrice',
+                    buyAmount: 'inputChangeBuyAmount',
+                    bestSeller: 'inputChangeBestSeller',
+                });
+                this.patchData(data, index + 1);
+                this.localData[index] = data;
+                this.renderCourses();
+                // click option remove course  from  list option
+            } else if (e.target.matches('.list-opiton-remove')) {
+                this.handleRemoveCourse();
+            } else {
+                return false;
             }
         });
     }
     handleAddCourse() {
-        let inputName = document.querySelector('.inputName');
-        let inputAuthor = document.querySelector('.inputAuthor');
-        let inputPrice = document.querySelector('.inputPrice');
-        let inputBuyAmount = document.querySelector('.inputBuyAmount');
-        let inputBestSeller = document.querySelector('.inputBestSeller');
-        const data = {
-            name: inputName.value,
-            author: inputAuthor.value,
-            price: inputPrice.value,
-            buyAmount: inputBuyAmount.value,
-            bestSeller: inputBestSeller.checked,
-        };
-        inputName.value =
-            inputAuthor.value =
-            inputPrice.value =
-            inputBuyAmount.value =
-                '';
-        inputBestSeller.checked = false;
+        const data = this.getDataFromModal(
+            {
+                name: 'inputName',
+                author: 'inputAuthor',
+                price: 'inputPrice',
+                buyAmount: 'inputBuyAmount',
+                bestSeller: 'inputBestSeller',
+            },
+            true
+        );
         this.postData(data);
         this.localData.push(data);
         this.renderCourses();
     }
-    handleDeleteAndPathCourse(currentIndex) {
-        console.log(currentIndex);
+    handleChangeCourse() {
+        const currentCourse = this.rightClickCurrenrCourse;
+        const getCurrentContent = (className) => {
+            return currentCourse
+                .querySelector(className)
+                .textContent.trim();
+        };
+        const dataCourse = {
+            name: getCurrentContent('.cousres-title'),
+            author: getCurrentContent('.cousres-author'),
+            price: getCurrentContent('.cousres-price').slice(0, -1),
+            buyAmount: getCurrentContent('.cousres-buy-amount'),
+            bestSeller: currentCourse.classList.contains('is-bestSeller'),
+        };
+        const classList = {
+            name: 'inputChangeName',
+            author: 'inputChangeAuthor',
+            price: 'inputChangePrice',
+            buyAmount: 'inputChangeBuyAmount',
+            bestSeller: 'inputChangeBestSeller',
+        };
+        this.setDataFromModal(classList, dataCourse);
+    }
+    handleRemoveCourse() {
+        const index = this.rightClickCurrentIndex;
+        this.deleteData(index + 1);
+        this.localData.splice(index, 1);
+        this.renderCourses();
     }
     async start() {
         await this.addLocalData();
         this.renderCourses();
+        this.addModal();
         this.handleEvent();
     }
 }
